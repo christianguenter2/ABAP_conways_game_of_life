@@ -13,9 +13,14 @@ CLASS test_conway DEFINITION FINAL FOR TESTING
     TYPES: tty_values TYPE STANDARD TABLE OF char1
                            WITH NON-UNIQUE EMPTY KEY.
 
-    DATA: m_board      TYPE REF TO zcl_cg_conways_game_of_life,
-          m_row_count  TYPE i,
-          m_given_rows TYPE i.
+    CONSTANTS: BEGIN OF co_random_seed,
+                 _1_ TYPE i VALUE 1234,
+                 _2_ TYPE i VALUE 789,
+               END OF co_random_seed.
+
+    DATA: board      TYPE REF TO zcl_cg_conways_game_of_life,
+          row_count  TYPE i,
+          given_rows TYPE i.
 
     METHODS:
       init_board								 FOR TESTING RAISING cx_static_check,
@@ -61,32 +66,32 @@ CLASS test_conway IMPLEMENTATION.
 
   METHOD _when_turn_is_executed.
 
-    m_board->turn( ).
+    board->turn( ).
 
   ENDMETHOD.
 
   METHOD _when_mult_turns_are_executed.
 
-    m_board->multiple_turns( turns_to_execute ).
+    board->multiple_turns( turns_to_execute ).
 
   ENDMETHOD.
 
   METHOD _then_cells_alive_should_be.
 
-    cl_abap_unit_assert=>assert_equals( act = m_board->get_active_cells( )
+    cl_abap_unit_assert=>assert_equals( act = board->get_alive_cells_count( )
                                         exp = i_exp_cells_alive ).
 
   ENDMETHOD.
 
   METHOD _given_board_is.
 
-    m_given_rows = m_given_rows + 1.
+    given_rows = given_rows + 1.
 
     DATA(values) = _split_row_string( given_row ).
 
-    IF m_board IS NOT BOUND.
+    IF board IS NOT BOUND.
 
-      m_board = NEW zcl_cg_conways_game_of_life( size = lines( values ) ).
+      board = NEW zcl_cg_conways_game_of_life( size = lines( values ) ).
 
     ENDIF.
 
@@ -96,8 +101,8 @@ CLASS test_conway IMPLEMENTATION.
 
       CHECK <value> = abap_true.
 
-      m_board->activate_cell( i_col = col
-                              i_row = m_given_rows ).
+      board->activate_cell( i_col = col
+                              i_row = given_rows ).
 
     ENDLOOP.
 
@@ -105,13 +110,13 @@ CLASS test_conway IMPLEMENTATION.
 
   METHOD _then_board_should_be.
 
-    IF m_row_count >= m_given_rows.
+    IF row_count >= given_rows.
 
-      CLEAR: m_row_count.
+      CLEAR: row_count.
 
     ENDIF.
 
-    m_row_count = m_row_count + 1.
+    row_count = row_count + 1.
 
     DATA(values) = _split_row_string( exp_val ).
 
@@ -119,10 +124,10 @@ CLASS test_conway IMPLEMENTATION.
 
       DATA(col) = sy-tabix.
 
-      cl_abap_unit_assert=>assert_equals( act = m_board->get_cell( i_col = col
-                                                                   i_row = m_row_count )
+      cl_abap_unit_assert=>assert_equals( act = board->get_cell( i_col = col
+                                                                   i_row = row_count )
                                           exp = <value>
-                                          msg = |Col { col }, Row { m_row_count }| ).
+                                          msg = |Col { col }, Row { row_count }| ).
 
     ENDLOOP.
 
@@ -154,7 +159,7 @@ CLASS test_conway IMPLEMENTATION.
                       `| | | |` ),
                       `| | | |` ).
 
-    m_board->fill_randomly( i_seed = 1234 ).
+    board->fill_randomly( i_seed = co_random_seed-_1_ ).
 
     _then_board_should_be(: `| |X|X|` ),
 													  `| | |X|` ),
@@ -267,7 +272,7 @@ CLASS test_conway IMPLEMENTATION.
 
     _when_mult_turns_are_executed( turns_to_execute = 17 ).
 
-    cl_abap_unit_assert=>assert_equals( act = m_board->get_turns( )
+    cl_abap_unit_assert=>assert_equals( act = board->get_turns( )
                                         exp = 17 ).
 
 
@@ -299,7 +304,7 @@ CLASS test_conway IMPLEMENTATION.
                       `| | | | | |` ),
                       `| | | | | |` ).
 
-    m_board->fill_randomly( i_seed = 789 ).
+    board->fill_randomly( i_seed = co_random_seed-_2_ ).
 
     _then_board_should_be(: `| | |X|X| |` ),
 													  `| |X| | | |` ),

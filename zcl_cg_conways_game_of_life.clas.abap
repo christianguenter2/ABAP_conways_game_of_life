@@ -1,53 +1,64 @@
-class ZCL_CG_CONWAYS_GAME_OF_LIFE definition
-  public
-  final
-  create public .
+CLASS zcl_cg_conways_game_of_life DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
 
-public section.
+  PUBLIC SECTION.
 
-  types:
-    BEGIN OF ty_coordinate,
-             col TYPE i,
-             row TYPE i,
-           END OF ty_coordinate .
-  types:
-    BEGIN OF ty_cell.
+    TYPES:
+      BEGIN OF ty_coordinate,
+        col TYPE i,
+        row TYPE i,
+      END OF ty_coordinate.
+
+    TYPES:
+      BEGIN OF ty_cell.
         INCLUDE TYPE ty_coordinate.
-    TYPES: active TYPE abap_bool,
-           END OF ty_cell .
-  types:
-    tty_coordinates TYPE HASHED TABLE OF ty_coordinate
-                           WITH UNIQUE KEY col row .
-  types:
-    tty_cell        TYPE HASHED TABLE OF ty_cell
+    TYPES: alive TYPE abap_bool,
+           END OF ty_cell.
+
+    TYPES:
+      tty_coordinates TYPE HASHED TABLE OF ty_coordinate
+                             WITH UNIQUE KEY col row.
+
+    TYPES:
+      tty_cell TYPE HASHED TABLE OF ty_cell
                     WITH UNIQUE KEY col row .
 
-  data M_SIZE type I read-only .
+    DATA: m_size TYPE i READ-ONLY.
 
-  methods CONSTRUCTOR
-    importing
-      !SIZE type I .
-  methods FILL_RANDOMLY
-    importing
-      !I_SEED type I optional
-    returning
-      value(R_BOARD) type ref to ZCL_CG_CONWAYS_GAME_OF_LIFE .
-  methods TURN .
-  methods GET_CELL
-    importing
-      !I_COL type I
-      !I_ROW type I
-    returning
-      value(R_ACTIVE) type ABAP_BOOL .
-  methods MULTIPLE_TURNS
-    importing
-      !I_COUNT type I .
-  methods GET_TURNS
-    returning
-      value(R_TURN_COUNT) type I .
-  methods GET_ACTIVE_CELLS
-    returning
-      value(R_CELLS_ALIVE) type I .
+    METHODS:
+      constructor
+        IMPORTING
+          !size TYPE i,
+
+      fill_randomly
+        IMPORTING
+          !i_seed        TYPE i OPTIONAL
+        RETURNING
+          VALUE(r_board) TYPE REF TO zcl_cg_conways_game_of_life,
+
+      turn,
+
+      get_cell
+        IMPORTING
+          !i_col         TYPE i
+          !i_row         TYPE i
+        RETURNING
+          VALUE(r_alive) TYPE abap_bool,
+
+      multiple_turns
+        IMPORTING
+          !i_count TYPE i,
+
+      get_turns
+        RETURNING
+          VALUE(r_turn_count) TYPE i,
+
+      get_alive_cells_count
+        RETURNING
+          VALUE(r_cells_alive) TYPE i .
+
   PRIVATE SECTION.
 
     TYPES: BEGIN OF ty_neighbour.
@@ -58,9 +69,9 @@ public section.
                               WITH UNIQUE KEY col row.
 
     DATA:
-      mt_cells             TYPE tty_cell,
-      mt_neighbours_buffer TYPE tty_neighbour,
-      m_turn_count         TYPE i.
+      cells             TYPE tty_cell,
+      neighbours_buffer TYPE tty_neighbour,
+      turn_count        TYPE i.
 
     METHODS:
       activate_cell
@@ -68,12 +79,12 @@ public section.
           i_col TYPE i
           i_row TYPE i,
 
-      get_active_neighbours_of_cell
+      get_alive_neighbours_of_cell
         IMPORTING
-          i_col                      TYPE i
-          i_row                      TYPE i
+          i_col                     TYPE i
+          i_row                     TYPE i
         RETURNING
-          VALUE(r_active_neighbours) TYPE i,
+          VALUE(r_alive_neighbours) TYPE i,
 
       get_neighbours_of_cell
         IMPORTING
@@ -86,13 +97,13 @@ ENDCLASS.
 
 
 
-CLASS ZCL_CG_CONWAYS_GAME_OF_LIFE IMPLEMENTATION.
+CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
 
   METHOD activate_cell.
 
-    mt_cells[ col = i_col
-              row = i_row ]-active = abap_true.
+    cells[ col = i_col
+           row = i_row ]-alive = abap_true.
 
   ENDMETHOD.
 
@@ -101,10 +112,10 @@ CLASS ZCL_CG_CONWAYS_GAME_OF_LIFE IMPLEMENTATION.
 
     m_size = size.
 
-    mt_cells = VALUE tty_cell( FOR col = 1 WHILE col <= m_size
-                               FOR row = 1 WHILE row <= m_size
-                               ( col    = col
-                                 row    = row ) ).
+    cells = VALUE tty_cell( FOR col = 1 WHILE col <= m_size
+                            FOR row = 1 WHILE row <= m_size
+                            ( col = col
+                              row = row ) ).
 
   ENDMETHOD.
 
@@ -116,9 +127,9 @@ CLASS ZCL_CG_CONWAYS_GAME_OF_LIFE IMPLEMENTATION.
                                             min  = 0
                                             max  = 1 ).
 
-    LOOP AT mt_cells ASSIGNING FIELD-SYMBOL(<cell>).
+    LOOP AT cells ASSIGNING FIELD-SYMBOL(<cell>).
 
-      <cell>-active = boolc( rnd->get_next( ) = 1 ).
+      <cell>-alive = boolc( rnd->get_next( ) = 1 ).
 
     ENDLOOP.
 
@@ -127,43 +138,43 @@ CLASS ZCL_CG_CONWAYS_GAME_OF_LIFE IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD get_active_cells.
+  METHOD get_alive_cells_count.
 
     r_cells_alive = REDUCE #( INIT result = 0
-                              FOR cell IN mt_cells
-                              WHERE ( active = abap_true  )
+                              FOR cell IN cells
+                              WHERE ( alive = abap_true  )
                               NEXT result = result + 1 ).
 
   ENDMETHOD.
 
 
-  METHOD get_active_neighbours_of_cell.
+  METHOD get_alive_neighbours_of_cell.
 
     DATA(neighbours) = get_neighbours_of_cell( i_col = i_col
                                                i_row = i_row ).
 
-    r_active_neighbours = REDUCE #( INIT result = 0
-                                    FOR neighbour IN neighbours
-                                    NEXT result = COND #( WHEN mt_cells[ col = neighbour-col
-                                                                         row = neighbour-row ]-active = abap_true
-                                                          THEN result + 1
-                                                          ELSE result ) ).
+    r_alive_neighbours = REDUCE #( INIT result = 0
+                                   FOR neighbour IN neighbours
+                                   NEXT result = COND #( WHEN cells[ col = neighbour-col
+                                                                     row = neighbour-row ]-alive = abap_true
+                                                         THEN result + 1
+                                                         ELSE result ) ).
 
   ENDMETHOD.
 
 
   METHOD get_cell.
 
-    r_active = mt_cells[ col = i_col
-                         row = i_row ]-active.
+    r_alive = cells[ col = i_col
+                     row = i_row ]-alive.
 
   ENDMETHOD.
 
 
   METHOD get_neighbours_of_cell.
 
-    ASSIGN mt_neighbours_buffer[ col = i_col
-                                 row = i_row ] TO FIELD-SYMBOL(<neighbour>).
+    ASSIGN neighbours_buffer[ col = i_col
+                              row = i_row ] TO FIELD-SYMBOL(<neighbour>).
     IF sy-subrc = 0.
 
       r_neighbours = <neighbour>-neighbours.
@@ -171,7 +182,7 @@ CLASS ZCL_CG_CONWAYS_GAME_OF_LIFE IMPLEMENTATION.
 
     ENDIF.
 
-    r_neighbours = VALUE #( FOR cell IN mt_cells
+    r_neighbours = VALUE #( FOR cell IN cells
                             WHERE  ( ( row = i_row + 1 AND col = i_col + 1 )
                                   OR ( row = i_row     AND col = i_col + 1 )
                                   OR ( row = i_row + 1 AND col = i_col     )
@@ -185,14 +196,14 @@ CLASS ZCL_CG_CONWAYS_GAME_OF_LIFE IMPLEMENTATION.
     INSERT VALUE #( col        = i_col
                     row        = i_row
                     neighbours = r_neighbours )
-           INTO TABLE mt_neighbours_buffer.
+           INTO TABLE neighbours_buffer.
 
   ENDMETHOD.
 
 
   METHOD get_turns.
 
-    r_turn_count = m_turn_count.
+    r_turn_count = turn_count.
 
   ENDMETHOD.
 
@@ -210,19 +221,19 @@ CLASS ZCL_CG_CONWAYS_GAME_OF_LIFE IMPLEMENTATION.
 
   METHOD turn.
 
-    m_turn_count = m_turn_count + 1.
+    turn_count = turn_count + 1.
 
-    DATA(new_cells) = VALUE tty_cell( FOR cell IN mt_cells
-                                      LET active_neighbours = get_active_neighbours_of_cell( i_col = cell-col
-                                                                                             i_row = cell-row )
+    DATA(new_cells) = VALUE tty_cell( FOR cell IN cells
+                                      LET alive_neighbours = get_alive_neighbours_of_cell( i_col = cell-col
+                                                                                           i_row = cell-row )
                                       IN ( col    = cell-col
                                            row    = cell-row
-                                           active = COND #( WHEN active_neighbours = 3 THEN abap_true
-                                                            WHEN active_neighbours = 2
-                                                             AND cell-active      = abap_true THEN abap_true
+                                           alive  = COND #( WHEN alive_neighbours = 3 THEN abap_true
+                                                            WHEN alive_neighbours = 2
+                                                             AND cell-alive       = abap_true THEN abap_true
                                                             ELSE abap_false ) ) ).
 
-    mt_cells = new_cells.
+    cells = new_cells.
 
   ENDMETHOD.
 ENDCLASS.
