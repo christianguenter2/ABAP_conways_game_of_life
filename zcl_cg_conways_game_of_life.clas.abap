@@ -91,7 +91,14 @@ CLASS zcl_cg_conways_game_of_life DEFINITION
           i_col               TYPE i
           i_row               TYPE i
         RETURNING
-          VALUE(r_neighbours) TYPE tty_coordinates.
+          VALUE(r_neighbours) TYPE tty_coordinates,
+
+      _execute_rule
+        IMPORTING
+          i_cell_alive       TYPE abap_bool
+          i_alive_neighbours TYPE i
+        RETURNING
+          VALUE(r_cell_alive)    TYPE abap_bool.
 
 ENDCLASS.
 
@@ -137,7 +144,6 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
   ENDMETHOD.
 
-
   METHOD get_alive_cells_count.
 
     r_cells_alive = REDUCE #( INIT result = 0
@@ -146,7 +152,6 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
                               NEXT result = result + 1 ).
 
   ENDMETHOD.
-
 
   METHOD get_alive_neighbours_of_cell.
 
@@ -162,14 +167,12 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
   ENDMETHOD.
 
-
   METHOD get_cell.
 
     r_alive = cells[ col = i_col
                      row = i_row ]-alive.
 
   ENDMETHOD.
-
 
   METHOD get_neighbours_of_cell.
 
@@ -183,14 +186,14 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
     ENDIF.
 
     r_neighbours = VALUE #( FOR cell IN cells
-                            WHERE  ( ( row = i_row + 1 AND col = i_col + 1 )
-                                  OR ( row = i_row     AND col = i_col + 1 )
-                                  OR ( row = i_row + 1 AND col = i_col     )
-                                  OR ( row = i_row - 1 AND col = i_col - 1 )
-                                  OR ( row = i_row     AND col = i_col - 1 )
-                                  OR ( row = i_row - 1 AND col = i_col     )
-                                  OR ( row = i_row + 1 AND col = i_col - 1 )
-                                  OR ( row = i_row - 1 AND col = i_col + 1 ) )
+                            WHERE ( ( row = i_row + 1 AND col = i_col + 1 )
+                                 OR ( row = i_row     AND col = i_col + 1 )
+                                 OR ( row = i_row + 1 AND col = i_col     )
+                                 OR ( row = i_row - 1 AND col = i_col - 1 )
+                                 OR ( row = i_row     AND col = i_col - 1 )
+                                 OR ( row = i_row - 1 AND col = i_col     )
+                                 OR ( row = i_row + 1 AND col = i_col - 1 )
+                                 OR ( row = i_row - 1 AND col = i_col + 1 ) )
                             ( col = cell-col row = cell-row ) ).
 
     INSERT VALUE #( col        = i_col
@@ -200,13 +203,11 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
   ENDMETHOD.
 
-
   METHOD get_turns.
 
     r_turn_count = turn_count.
 
   ENDMETHOD.
-
 
   METHOD multiple_turns.
 
@@ -218,7 +219,6 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
   ENDMETHOD.
 
-
   METHOD turn.
 
     turn_count = turn_count + 1.
@@ -228,12 +228,18 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
                                                                                            i_row = cell-row )
                                       IN ( col    = cell-col
                                            row    = cell-row
-                                           alive  = COND #( WHEN alive_neighbours = 3 THEN abap_true
-                                                            WHEN alive_neighbours = 2
-                                                             AND cell-alive       = abap_true THEN abap_true
-                                                            ELSE abap_false ) ) ).
+                                           alive  = _execute_rule( i_cell_alive       = cell-alive
+                                                                   i_alive_neighbours = alive_neighbours ) ) ).
 
     cells = new_cells.
 
   ENDMETHOD.
+
+  METHOD _execute_rule.
+
+    r_cell_alive =  COND #( WHEN i_alive_neighbours = 3 														 THEN abap_true
+                            WHEN i_alive_neighbours = 2 AND i_cell_alive = abap_true THEN abap_true ).
+
+  ENDMETHOD.
+
 ENDCLASS.
