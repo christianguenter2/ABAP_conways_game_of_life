@@ -1,9 +1,9 @@
 *&---------------------------------------------------------------------*
-*& Report z_test_conway_view
+*& Report zcg_conway_view
 *&---------------------------------------------------------------------*
 *&
 *&---------------------------------------------------------------------*
-REPORT z_test_conway_view.
+REPORT zcg_conway_view.
 
 PARAMETERS: size TYPE i DEFAULT 5 OBLIGATORY.
 
@@ -48,8 +48,8 @@ CLASS lcx_error DEFINITION
       get_text REDEFINITION.
 
   PRIVATE SECTION.
-    DATA: m_msg  TYPE symsg,
-          m_text TYPE string.
+    DATA: _msg  TYPE symsg,
+          _text TYPE string.
 
     METHODS:
       _get_msg_text
@@ -86,12 +86,12 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
                     WITH NON-UNIQUE DEFAULT KEY.
 
     DATA:
-      m_board             TYPE REF TO zcl_cg_conways_game_of_life,
-      mr_table            TYPE REF TO data,
-      struct_descr        TYPE REF TO cl_abap_structdescr,
-      alv                 TYPE REF TO cl_salv_table,
-      m_docking_container TYPE REF TO cl_gui_docking_container,
-      m_html_container    TYPE REF TO cl_gui_html_viewer.
+      board             TYPE REF TO zcl_cg_conways_game_of_life,
+      table_reference   TYPE REF TO data,
+      struct_descr      TYPE REF TO cl_abap_structdescr,
+      alv               TYPE REF TO cl_salv_table,
+      docking_container TYPE REF TO cl_gui_docking_container,
+      html_container    TYPE REF TO cl_gui_html_viewer.
 
     METHODS:
       _fill_board
@@ -173,8 +173,8 @@ CLASS lcx_error IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( textid = textid previous = previous ).
-    m_msg  = msg.
-    m_text = text.
+    _msg  = msg.
+    _text = text.
 
   ENDMETHOD.
 
@@ -194,16 +194,16 @@ CLASS lcx_error IMPLEMENTATION.
 
   METHOD get_text.
 
-    result = COND #( WHEN m_msg  IS NOT INITIAL THEN _get_msg_text(  )
-                     WHEN m_text IS NOT INITIAL THEN m_text
+    result = COND #( WHEN _msg  IS NOT INITIAL THEN _get_msg_text(  )
+                     WHEN _text IS NOT INITIAL THEN _text
                      ELSE super->get_text( ) ).
 
   ENDMETHOD.
 
   METHOD _get_msg_text.
 
-    MESSAGE ID m_msg-msgid TYPE m_msg-msgty NUMBER m_msg-msgno
-            WITH m_msg-msgv1 m_msg-msgv2 m_msg-msgv3 m_msg-msgv4
+    MESSAGE ID _msg-msgid TYPE _msg-msgty NUMBER _msg-msgno
+            WITH _msg-msgv1 _msg-msgv2 _msg-msgv3 _msg-msgv4
             INTO r_msg_text.
 
   ENDMETHOD.
@@ -230,19 +230,19 @@ CLASS conway_view IMPLEMENTATION.
 
   METHOD constructor.
 
-    m_board = i_board.
+    board = i_board.
 
     struct_descr = cl_abap_structdescr=>create(
                         VALUE #( LET type = CAST cl_abap_datadescr( cl_abap_typedescr=>describe_by_name( |ICON_D| ) )
                                  IN
-                                 FOR x = 1 WHILE x <= m_board->m_size
+                                 FOR x = 1 WHILE x <= board->m_size
                                  ( name = |COL_{ x }|
                                    type = type ) ) ).
 
     DATA(table_descr) = cl_abap_tabledescr=>create( struct_descr ).
 
-    CREATE DATA mr_table TYPE HANDLE table_descr.
-    ASSERT mr_table IS BOUND.
+    CREATE DATA table_reference TYPE HANDLE table_descr.
+    ASSERT table_reference IS BOUND.
 
   ENDMETHOD.
 
@@ -258,14 +258,14 @@ CLASS conway_view IMPLEMENTATION.
 
     CLEAR ct_table.
 
-    DO m_board->m_size TIMES.
+    DO board->m_size TIMES.
 
       CREATE DATA lr_line TYPE HANDLE struct_descr.
       ASSIGN lr_line->* TO FIELD-SYMBOL(<line>).
 
       DATA(row) = sy-index.
 
-      DO m_board->m_size TIMES.
+      DO board->m_size TIMES.
 
         DATA(col) = sy-index.
 
@@ -274,7 +274,7 @@ CLASS conway_view IMPLEMENTATION.
                TO FIELD-SYMBOL(<value>).
         ASSERT sy-subrc = 0.
 
-        <value> = COND #( WHEN m_board->get_cell( i_col = col
+        <value> = COND #( WHEN board->get_cell( i_col = col
                                                   i_row = row ) = abap_true
                           THEN icon_modify ).
 
@@ -324,7 +324,7 @@ CLASS conway_view IMPLEMENTATION.
 
   METHOD _resize_columns.
 
-    DO m_board->m_size TIMES.
+    DO board->m_size TIMES.
 
       alv->get_columns( )->get_column( |COL_{ sy-index }| )->set_output_length( 2 ).
 
@@ -338,7 +338,7 @@ CLASS conway_view IMPLEMENTATION.
 
     SET TITLEBAR 'CONWAY'.
 
-    ASSIGN mr_table->* TO FIELD-SYMBOL(<table>).
+    ASSIGN table_reference->* TO FIELD-SYMBOL(<table>).
     ASSERT sy-subrc = 0.
 
     TRY.
@@ -368,18 +368,18 @@ CLASS conway_view IMPLEMENTATION.
 
     DATA: assigned_url TYPE c LENGTH 255.
 
-    IF m_docking_container IS NOT BOUND.
+    IF docking_container IS NOT BOUND.
 
-      m_docking_container = NEW cl_gui_docking_container( side      = cl_gui_docking_container=>dock_at_top
+      docking_container = NEW cl_gui_docking_container( side      = cl_gui_docking_container=>dock_at_top
                                                           extension = 30 ).
 
-      m_html_container = NEW cl_gui_html_viewer( parent = m_docking_container ).
+      html_container = NEW cl_gui_html_viewer( parent = docking_container ).
 
     ENDIF.
 
     DATA(html_table) = _get_html( ).
 
-    m_html_container->load_data(
+    html_container->load_data(
       IMPORTING
         assigned_url = assigned_url    " URL
       CHANGING
@@ -391,7 +391,7 @@ CLASS conway_view IMPLEMENTATION.
       lcx_error=>raise_syst( ).
     ENDIF.
 
-    m_html_container->show_url(
+    html_container->show_url(
       EXPORTING
         url    = assigned_url
       EXCEPTIONS
@@ -408,8 +408,8 @@ CLASS conway_view IMPLEMENTATION.
     rt_html = VALUE #( ( '<html>'  )
                        ( '<body>'  )
                        ( '<font size="4" face="Arial,MS Sans Serif">'  )
-                       ( '<h2>Turns: ' && | { m_board->get_turns( ) }| )
-                       ( |  Cells alive: { m_board->get_active_cells( ) }| && '</h2>'  )
+                       ( '<h2>Turns: ' && | { board->get_turns( ) }| )
+                       ( |  Cells alive: { board->get_alive_cells_count( ) }| && '</h2>'  )
                        ( '</body>' )
                        ( '</html>' ) ).
 
