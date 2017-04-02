@@ -153,6 +153,7 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD get_alive_neighbours_of_cell.
 
     DATA(neighbours) = get_neighbours_of_cell( i_col = i_col
