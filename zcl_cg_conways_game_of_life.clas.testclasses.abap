@@ -247,8 +247,8 @@ CLASS test_conway IMPLEMENTATION.
     _when_turn_is_executed( ).
 
     _then_board_should_be(: `| | | |` ),
-													  `| | | |` ),
-													  `| | | |` ).
+                            `| | | |` ),
+                            `| | | |` ).
 
   ENDMETHOD.
 

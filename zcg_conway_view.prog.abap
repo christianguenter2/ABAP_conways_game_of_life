@@ -86,12 +86,13 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
                     WITH NON-UNIQUE DEFAULT KEY.
 
     DATA:
-      board             TYPE REF TO zcl_cg_conways_game_of_life,
-      table_reference   TYPE REF TO data,
-      struct_descr      TYPE REF TO cl_abap_structdescr,
-      alv               TYPE REF TO cl_salv_table,
-      docking_container TYPE REF TO cl_gui_docking_container,
-      html_container    TYPE REF TO cl_gui_html_viewer.
+      board              TYPE REF TO zcl_cg_conways_game_of_life,
+      table_reference    TYPE REF TO data,
+      struct_descr       TYPE REF TO cl_abap_structdescr,
+      alv                TYPE REF TO cl_salv_table,
+      docking_container  TYPE REF TO cl_gui_docking_container,
+      html_container     TYPE REF TO cl_gui_html_viewer,
+      dummy_html_control TYPE REF TO cl_gui_html_viewer.
 
     METHODS:
       _fill_board
@@ -103,6 +104,7 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
           ct_table TYPE INDEX TABLE
         RAISING
           lcx_error,
+
       _display_docking_top
         RAISING
           lcx_error,
@@ -114,7 +116,16 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
       _resize_columns
         RAISING
           cx_salv_not_found,
-      _set_status.
+
+      _set_status,
+
+      _dummy_html_control
+        RAISING
+          lcx_error,
+
+      _on_sapevent FOR EVENT sapevent OF cl_gui_html_viewer
+        IMPORTING
+            action frame getdata postdata query_table.
 
 ENDCLASS.
 
@@ -132,6 +143,7 @@ CLASS controller DEFINITION CREATE PUBLIC.
       start
         IMPORTING
           i_size TYPE i,
+
       is_timer_active
         RETURNING
           VALUE(r_is_timer_active) TYPE abap_bool.
@@ -342,6 +354,7 @@ CLASS conway_view IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
     TRY.
+        _dummy_html_control( ).
         _fill_board(  CHANGING ct_table = <table> ).
         _display_docking_top( ).
         _display_alv( CHANGING ct_table = <table> ).
@@ -371,7 +384,7 @@ CLASS conway_view IMPLEMENTATION.
     IF docking_container IS NOT BOUND.
 
       docking_container = NEW cl_gui_docking_container( side      = cl_gui_docking_container=>dock_at_top
-                                                          extension = 30 ).
+                                                        extension = 30 ).
 
       html_container = NEW cl_gui_html_viewer( parent = docking_container ).
 
@@ -425,6 +438,74 @@ CLASS conway_view IMPLEMENTATION.
     ENDIF.
 
     SET PF-STATUS 'STATUS_0100' EXCLUDING lt_excluding.
+
+  ENDMETHOD.
+
+  METHOD _dummy_html_control.
+
+    DATA: lt_events TYPE cntl_simple_events.
+
+    " Here the dummy html container for timer wakeup via AMC and WebSockets is created
+    CHECK dummy_html_control IS NOT BOUND.
+
+    dummy_html_control = NEW cl_gui_html_viewer( parent = cl_gui_container=>screen9 ).
+
+    dummy_html_control->enable_sapsso(
+      EXPORTING
+        enabled     = abap_true
+      EXCEPTIONS
+        cntl_error  = 1
+        OTHERS      = 2 ).
+
+    IF sy-subrc <> 0.
+      lcx_error=>raise_syst( ).
+    ENDIF.
+
+    lt_events = VALUE #( ( eventid    = 1
+                           appl_event = abap_true ) ).
+
+    dummy_html_control->set_registered_events(
+      EXPORTING
+        events                    = lt_events
+      EXCEPTIONS
+        OTHERS                    = 4 ).
+
+    IF sy-subrc <> 0.
+      lcx_error=>raise_syst( ).
+    ENDIF.
+
+    SET HANDLER _on_sapevent FOR dummy_html_control.
+
+    cl_bsp_runtime=>construct_bsp_url(
+      EXPORTING
+        in_protocol    = 'https'
+        in_application = 'Z_AMC_WAKEUP_WS'
+        in_page 			 = 'start.htm'
+      IMPORTING
+        out_abs_url 	 = DATA(url) ).
+
+    dummy_html_control->show_url(
+      EXPORTING
+        url                    = CONV char255( url )
+      EXCEPTIONS
+        cntl_error             = 1
+        cnht_error_not_allowed = 2
+        cnht_error_parameter   = 3
+        dp_error_general       = 4
+        OTHERS                 = 5 ).
+
+    IF sy-subrc <> 0.
+      lcx_error=>raise_syst( ).
+    ENDIF.
+
+  ENDMETHOD.
+
+
+  METHOD _on_sapevent.
+
+    RAISE EVENT function_code_pressed
+      EXPORTING
+        e_fcode = 'NEXT'.
 
   ENDMETHOD.
 
@@ -564,7 +645,7 @@ CLASS controller IMPLEMENTATION.
 
       WHEN OTHERS.
 
-        MESSAGE |Fcode { i_fcode } not implemented...| TYPE 'I'.
+*        MESSAGE |Fcode { i_fcode } not implemented...| TYPE 'I'.
 
     ENDCASE.
 
