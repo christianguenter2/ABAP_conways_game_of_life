@@ -11,6 +11,11 @@ SELECTION-SCREEN BEGIN OF SCREEN 2000.
 PARAMETERS: count TYPE i DEFAULT 100 OBLIGATORY.
 SELECTION-SCREEN END OF SCREEN 2000.
 
+SELECTION-SCREEN BEGIN OF SCREEN 2500.
+PARAMETERS: gui RADIOBUTTON GROUP r1 DEFAULT 'X',
+            ws  RADIOBUTTON GROUP r1.
+SELECTION-SCREEN END OF SCREEN 2500.
+
 SELECTION-SCREEN BEGIN OF SCREEN 3000.
 SELECTION-SCREEN INCLUDE PARAMETERS count.
 PARAMETERS: interval TYPE p LENGTH 2 DECIMALS 2 DEFAULT 1 OBLIGATORY.
@@ -40,9 +45,9 @@ CLASS lcx_error DEFINITION
     METHODS:
       constructor
         IMPORTING
-          textid   LIKE textid OPTIONAL
-          previous LIKE previous OPTIONAL
-          msg      TYPE symsg OPTIONAL
+          textid   LIKE textid		OPTIONAL
+          previous LIKE previous	OPTIONAL
+          msg      TYPE symsg 		OPTIONAL
           text     TYPE csequence OPTIONAL,
 
       get_text REDEFINITION.
@@ -72,7 +77,11 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
 
       pai_0100,
 
-      pbo_0100.
+      pbo_0100,
+
+      prepare_websocket_channel
+        RAISING
+          lcx_error.
 
     EVENTS:
       function_code_pressed
@@ -142,7 +151,11 @@ CLASS controller DEFINITION CREATE PUBLIC.
     METHODS:
       start
         IMPORTING
-          i_size TYPE i,
+          i_size            TYPE i
+        RETURNING
+          VALUE(r_instance) TYPE REF TO controller,
+
+      clean_up,
 
       is_timer_active
         RETURNING
@@ -151,10 +164,11 @@ CLASS controller DEFINITION CREATE PUBLIC.
   PRIVATE SECTION.
     CLASS-DATA: _instance TYPE REF TO controller.
 
-    DATA: m_board         TYPE REF TO zcl_cg_conways_game_of_life,
-          m_timer         TYPE REF TO cl_gui_timer,
-          m_timer_current TYPE i,
-          m_timer_max     TYPE i.
+    DATA: m_board             TYPE REF TO zcl_cg_conways_game_of_life,
+          m_timer             TYPE REF TO cl_gui_timer,
+          m_timer_current     TYPE i,
+          m_timer_max         TYPE i,
+          m_is_amc_registered TYPE abap_bool.
 
     METHODS:
       _dispatch_fcode FOR EVENT function_code_pressed OF conway_view
@@ -163,7 +177,9 @@ CLASS controller DEFINITION CREATE PUBLIC.
 
       _refresh,
 
-      _start_simulation,
+      _start_simulation
+        RAISING
+          lcx_error,
 
       _handler_timer_finished
         FOR EVENT finished OF cl_gui_timer,
@@ -354,7 +370,6 @@ CLASS conway_view IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
     TRY.
-        _dummy_html_control( ).
         _fill_board(  CHANGING ct_table = <table> ).
         _display_docking_top( ).
         _display_alv( CHANGING ct_table = <table> ).
@@ -509,6 +524,13 @@ CLASS conway_view IMPLEMENTATION.
 
   ENDMETHOD.
 
+
+  METHOD prepare_websocket_channel.
+
+    _dummy_html_control( ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS controller IMPLEMENTATION.
@@ -533,6 +555,8 @@ CLASS controller IMPLEMENTATION.
     SET HANDLER _dispatch_fcode FOR m_view.
 
     m_view->display( ).
+
+    r_instance = me.
 
   ENDMETHOD.
 
@@ -565,14 +589,41 @@ CLASS controller IMPLEMENTATION.
 
     ENDIF.
 
-    CALL SELECTION-SCREEN 3000 STARTING AT 5 5.
+    CALL SELECTION-SCREEN 2500 STARTING AT 5 5.
     CHECK sy-subrc = 0.
 
-    m_timer_current = 0.
-    m_timer_max     = count.
+    CASE abap_true .
+      WHEN gui.
 
-    m_timer->interval = interval.
-    m_timer->run( ).
+        CALL SELECTION-SCREEN 3000 STARTING AT 5 5.
+        CHECK sy-subrc = 0.
+
+        m_timer_current = 0.
+        m_timer_max     = count.
+
+        m_timer->interval = interval.
+        m_timer->run( ).
+
+      WHEN ws.
+
+        m_view->prepare_websocket_channel( ).
+
+        CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
+          STARTING NEW TASK 'CONWAY'
+          EXPORTING
+            tcode                   = 'Z_CONWAY_TIMER_WS'
+          EXCEPTIONS
+            call_transaction_denied = 1
+            tcode_invalid           = 2
+            OTHERS                  = 3.
+
+        IF sy-subrc <> 0.
+          lcx_error=>raise_syst( ).
+        ENDIF.
+
+        m_is_amc_registered = abap_true.
+
+    ENDCASE.
 
   ENDMETHOD.
 
@@ -645,16 +696,33 @@ CLASS controller IMPLEMENTATION.
 
       WHEN OTHERS.
 
-*        MESSAGE |Fcode { i_fcode } not implemented...| TYPE 'I'.
-
     ENDCASE.
+
+  ENDMETHOD.
+
+  METHOD clean_up.
+
+    CHECK m_is_amc_registered = abap_true.
+
+    DATA: _producer TYPE REF TO if_amc_message_producer_text.
+
+    TRY.
+        _producer ?= cl_amc_channel_manager=>create_message_producer( i_application_id = 'ZAMC_WAKEUP'
+                                                                      i_channel_id     = '/channel' ).
+
+        _producer->send( |__CLOSE__| ).
+
+      CATCH cx_amc_error INTO DATA(error).
+        MESSAGE error TYPE 'S' DISPLAY LIKE 'E'.
+    ENDTRY.
+
 
   ENDMETHOD.
 
 ENDCLASS.
 
 START-OF-SELECTION.
-  controller=>get_instance( )->start( size ).
+  controller=>get_instance( )->start( size )->clean_up( ).
 
 MODULE pbo_0100 OUTPUT.
   controller=>get_instance( )->m_view->pbo_0100( ).
