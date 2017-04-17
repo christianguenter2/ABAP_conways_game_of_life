@@ -4,7 +4,7 @@ Implementation of [Conways Game of Life](https://en.wikipedia.org/wiki/Conway%27
 
 NW ABAP 7.50 required.
 
-![Start screen](/0242ac1100021ed788f1e1b244775c10.smim.start_screen.jpg?raw=true "Start screen")
+![Start screen](/0242ac1100021ee788f2310c2ac95139.smim.start_screen.jpg?raw=true "Start screen")
 
 ![Init](/0242ac1100021ed788f22b5ea98cdc10.smim.gol_with_websocket_timer.jpg?raw=true "Init")
 
