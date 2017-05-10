@@ -19,11 +19,13 @@ CLASS zcl_cg_conways_game_of_life DEFINITION
 
     TYPES:
       tty_coordinates TYPE HASHED TABLE OF ty_coordinate
-                             WITH UNIQUE KEY col row.
+                           WITH UNIQUE KEY col row.
 
     TYPES:
       tty_cell TYPE HASHED TABLE OF ty_cell
-                    WITH UNIQUE KEY col row .
+                    WITH UNIQUE KEY col row
+                    WITH NON-UNIQUE SORTED KEY key_alive
+                         COMPONENTS alive.
 
     DATA: m_size TYPE i READ-ONLY.
 
@@ -63,7 +65,7 @@ CLASS zcl_cg_conways_game_of_life DEFINITION
 
     TYPES: BEGIN OF ty_neighbour.
         INCLUDE TYPE ty_coordinate.
-    TYPES: neighbours TYPE tty_coordinates,
+    TYPES: neighbours_coordinates TYPE tty_coordinates,
            END OF ty_neighbour,
            tty_neighbour TYPE HASHED TABLE OF ty_neighbour
                               WITH UNIQUE KEY col row.
@@ -91,14 +93,14 @@ CLASS zcl_cg_conways_game_of_life DEFINITION
           i_col               TYPE i
           i_row               TYPE i
         RETURNING
-          VALUE(r_neighbours) TYPE tty_coordinates,
+          VALUE(r_neighbours) TYPE tty_cell,
 
       _execute_rule
         IMPORTING
-          i_cell_alive       TYPE abap_bool
-          i_alive_neighbours TYPE i
+          i_cell_alive        TYPE abap_bool
+          i_alive_neighbours  TYPE i
         RETURNING
-          VALUE(r_cell_alive)    TYPE abap_bool.
+          VALUE(r_cell_alive) TYPE abap_bool.
 
 ENDCLASS.
 
@@ -144,29 +146,25 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD get_alive_cells_count.
 
-    r_cells_alive = REDUCE #( INIT result = 0
-                              FOR cell IN cells
-                              WHERE ( alive = abap_true  )
-                              NEXT result = result + 1 ).
+    r_cells_alive = lines( FILTER #( cells USING KEY key_alive
+                                           WHERE alive = abap_true  ) ).
 
   ENDMETHOD.
 
 
   METHOD get_alive_neighbours_of_cell.
 
-    DATA(neighbours) = get_neighbours_of_cell( i_col = i_col
-                                               i_row = i_row ).
+    r_alive_neighbours = lines( FILTER #( get_neighbours_of_cell( i_col = i_col
+                                                                  i_row = i_row )
+                                USING KEY key_alive
+                                WHERE alive = abap_true  ) ).
 
-    r_alive_neighbours = REDUCE #( INIT result = 0
-                                   FOR neighbour IN neighbours
-                                   NEXT result = COND #( WHEN cells[ col = neighbour-col
-                                                                     row = neighbour-row ]-alive = abap_true
-                                                         THEN result + 1
-                                                         ELSE result ) ).
 
   ENDMETHOD.
+
 
   METHOD get_cell.
 
@@ -175,40 +173,50 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD get_neighbours_of_cell.
+
+    DATA: neighbours_coordinates TYPE zcl_cg_conways_game_of_life=>ty_neighbour-neighbours_coordinates.
 
     ASSIGN neighbours_buffer[ col = i_col
                               row = i_row ] TO FIELD-SYMBOL(<neighbour>).
     IF sy-subrc = 0.
 
-      r_neighbours = <neighbour>-neighbours.
-      RETURN.
+      neighbours_coordinates = <neighbour>-neighbours_coordinates.
+
+    ELSE.
+
+      neighbours_coordinates = VALUE #( FOR cell IN cells
+                               WHERE ( ( row = i_row + 1 AND col = i_col + 1 )
+                                    OR ( row = i_row     AND col = i_col + 1 )
+                                    OR ( row = i_row + 1 AND col = i_col     )
+                                    OR ( row = i_row - 1 AND col = i_col - 1 )
+                                    OR ( row = i_row     AND col = i_col - 1 )
+                                    OR ( row = i_row - 1 AND col = i_col     )
+                                    OR ( row = i_row + 1 AND col = i_col - 1 )
+                                    OR ( row = i_row - 1 AND col = i_col + 1 ) )
+                               (  col = cell-col row = cell-row  ) ).
+
+      INSERT VALUE #( col 									 = i_col
+                      row 									 = i_row
+                      neighbours_coordinates = neighbours_coordinates )
+             INTO TABLE neighbours_buffer.
 
     ENDIF.
 
-    r_neighbours = VALUE #( FOR cell IN cells
-                            WHERE ( ( row = i_row + 1 AND col = i_col + 1 )
-                                 OR ( row = i_row     AND col = i_col + 1 )
-                                 OR ( row = i_row + 1 AND col = i_col     )
-                                 OR ( row = i_row - 1 AND col = i_col - 1 )
-                                 OR ( row = i_row     AND col = i_col - 1 )
-                                 OR ( row = i_row - 1 AND col = i_col     )
-                                 OR ( row = i_row + 1 AND col = i_col - 1 )
-                                 OR ( row = i_row - 1 AND col = i_col + 1 ) )
-                            ( col = cell-col row = cell-row ) ).
-
-    INSERT VALUE #( col        = i_col
-                    row        = i_row
-                    neighbours = r_neighbours )
-           INTO TABLE neighbours_buffer.
+    r_neighbours = VALUE #( FOR neighbour IN neighbours_coordinates
+                            ( cells[ row = neighbour-row
+                                     col = neighbour-col ] ) ).
 
   ENDMETHOD.
+
 
   METHOD get_turns.
 
     r_turn_count = turn_count.
 
   ENDMETHOD.
+
 
   METHOD multiple_turns.
 
@@ -219,6 +227,7 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
     ENDDO.
 
   ENDMETHOD.
+
 
   METHOD turn.
 
@@ -236,11 +245,11 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD _execute_rule.
 
     r_cell_alive =  COND #( WHEN i_alive_neighbours = 3 														 THEN abap_true
                             WHEN i_alive_neighbours = 2 AND i_cell_alive = abap_true THEN abap_true ).
 
   ENDMETHOD.
-
 ENDCLASS.
