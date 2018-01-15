@@ -4,6 +4,8 @@ Implementation of [Conways Game of Life](https://en.wikipedia.org/wiki/Conway%27
 
 NW ABAP 7.50 required.
 
+To start execute report ZCG_CONWAY_VIEW
+
 ![Start screen](/mimes/start_screen.jpg?raw=true "Start screen")
 
 ![Init](/mimes/gol_with_websocket_timer.jpg?raw=true "Init")
