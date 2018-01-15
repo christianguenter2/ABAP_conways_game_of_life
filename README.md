@@ -8,6 +8,9 @@ To start execute report ZCG_CONWAY_VIEW
 
 ![Start screen](/mimes/start_screen.jpg?raw=true "Start screen")
 
+Then you can either execute turns manually (F8 or F9) or start simulation mode (Shift-F9).
+In simulation mode you can either use a SAPGUI timer (option GUI) or use the modern approach with AMC, APC and websocket. Although the last one might not work in every environment.
+
 ![Init](/mimes/gol_with_websocket_timer.jpg?raw=true "Init")
 
 ![After 10 turns](/mimes/gol_after_10_turns.jpg?raw=true "After 10 turns")
