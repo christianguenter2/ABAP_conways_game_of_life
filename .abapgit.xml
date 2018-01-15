@@ -11,6 +11,12 @@
     <item>/README.md</item>
     <item>/package.json</item>
     <item>/.travis.yml</item>
+    <item>/z_amc_wakeup_ws.sicf.xml</item>
+    <item>/zapc_wakeup.sicf.xml</item>
+    <item>/mimes/gol_after_10_turns.jpg</item>
+    <item>/mimes/gol_after_110_turns.jpg</item>
+    <item>/mimes/gol_with_websocket_timer.jpg</item>
+    <item>/mimes/start_screen.jpg</item>
    </IGNORE>
   </DATA>
  </asx:values>
