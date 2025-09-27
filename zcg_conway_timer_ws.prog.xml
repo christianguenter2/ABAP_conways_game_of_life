@@ -4,8 +4,6 @@
   <asx:values>
    <PROGDIR>
     <NAME>ZCG_CONWAY_TIMER_WS</NAME>
-    <STATE>A</STATE>
-    <VARCL>X</VARCL>
     <DBAPL>S</DBAPL>
     <SUBC>1</SUBC>
     <RLOAD>E</RLOAD>
