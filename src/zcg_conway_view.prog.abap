@@ -45,9 +45,9 @@ CLASS lcx_error DEFINITION
     METHODS:
       constructor
         IMPORTING
-          textid   LIKE textid		OPTIONAL
-          previous LIKE previous	OPTIONAL
-          msg      TYPE symsg 		OPTIONAL
+          textid   LIKE textid    OPTIONAL
+          previous LIKE previous  OPTIONAL
+          msg      TYPE symsg     OPTIONAL
           text     TYPE csequence OPTIONAL,
 
       get_text REDEFINITION.
@@ -503,7 +503,7 @@ CLASS conway_view IMPLEMENTATION.
         in_application = 'Z_AMC_WAKEUP_WS'
         in_page        = 'start.htm'
       IMPORTING
-        out_abs_url 	 = DATA(url) ).
+        out_abs_url    = DATA(url) ).
 
     dummy_html_control->show_url(
       EXPORTING

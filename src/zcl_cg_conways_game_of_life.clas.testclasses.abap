@@ -102,7 +102,7 @@ CLASS test_conway IMPLEMENTATION.
       CHECK <value> = abap_true.
 
       board->activate_cell( i_col = col
-                              i_row = given_rows ).
+                            i_row = given_rows ).
 
     ENDLOOP.
 
@@ -125,7 +125,7 @@ CLASS test_conway IMPLEMENTATION.
       DATA(col) = sy-tabix.
 
       cl_abap_unit_assert=>assert_equals( act = board->get_cell( i_col = col
-                                                                   i_row = row_count )
+                                                                 i_row = row_count )
                                           exp = <value>
                                           msg = |Col { col }, Row { row_count }| ).
 
