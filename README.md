@@ -8,13 +8,13 @@ NW ABAP 7.50 required.
 
 To start execute report ZCG_CONWAY_VIEW
 
-![Start screen](/assets/start_screen.jpg "Start screen")
+![Start screen](/assets/start_screen.png "Start screen")
 
 Then you can either execute turns manually (F8 or F9) or start simulation mode (Shift-F9).
 In simulation mode you can either use a SAPGUI timer (option GUI) or the modern approach with AMC, APC and websocket (option WS). Although the latter might not work in every environment. You can montior websocket connections with transactoin SMWS.
 
-![Init](/assets/gol_with_websocket_timer.jpg "Init")
+![Init](/assets/gol_with_websocket_timer.png "Init")
 
-![After 10 turns](/assets/gol_after_10_turns.jpg "After 10 turns")
+![After 10 turns](/assets/gol_after_10_turns.png "After 10 turns")
 
-![After 110 turns](/assets/gol_after_110_turns.jpg "After 110 turns")
+![After 110 turns](/assets/gol_after_110_turns.png "After 110 turns")
