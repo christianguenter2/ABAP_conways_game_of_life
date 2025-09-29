@@ -8,17 +8,17 @@ REPORT zcg_conway_view.
 PARAMETERS: size TYPE i DEFAULT 5 OBLIGATORY.
 
 SELECTION-SCREEN BEGIN OF SCREEN 2000.
-PARAMETERS: count TYPE i DEFAULT 100 OBLIGATORY.
+  PARAMETERS: count TYPE i DEFAULT 100 OBLIGATORY.
 SELECTION-SCREEN END OF SCREEN 2000.
 
 SELECTION-SCREEN BEGIN OF SCREEN 2500.
-PARAMETERS: gui RADIOBUTTON GROUP r1 DEFAULT 'X',
-            ws  RADIOBUTTON GROUP r1.
+  PARAMETERS: gui RADIOBUTTON GROUP r1 DEFAULT 'X',
+              ws  RADIOBUTTON GROUP r1.
 SELECTION-SCREEN END OF SCREEN 2500.
 
 SELECTION-SCREEN BEGIN OF SCREEN 3000.
-SELECTION-SCREEN INCLUDE PARAMETERS count.
-PARAMETERS: interval TYPE p LENGTH 2 DECIMALS 2 DEFAULT 1 OBLIGATORY.
+  SELECTION-SCREEN INCLUDE PARAMETERS count.
+  PARAMETERS: interval TYPE p LENGTH 2 DECIMALS 2 DEFAULT 1 OBLIGATORY.
 SELECTION-SCREEN END OF SCREEN 3000.
 
 CLASS lcx_error DEFINITION
@@ -101,7 +101,8 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
       alv                TYPE REF TO cl_salv_table,
       docking_container  TYPE REF TO cl_gui_docking_container,
       html_container     TYPE REF TO cl_gui_html_viewer,
-      dummy_html_control TYPE REF TO cl_gui_html_viewer.
+      dummy_html_control TYPE REF TO cl_gui_html_viewer,
+      splitter_container TYPE REF TO cl_gui_splitter_container.
 
     METHODS:
       _fill_board
@@ -134,7 +135,7 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
 
       _on_sapevent FOR EVENT sapevent OF cl_gui_html_viewer
         IMPORTING
-            action frame getdata postdata query_table.
+          action frame getdata postdata query_table.
 
 ENDCLASS.
 
@@ -173,7 +174,7 @@ CLASS controller DEFINITION CREATE PUBLIC.
     METHODS:
       _dispatch_fcode FOR EVENT function_code_pressed OF conway_view
         IMPORTING
-            e_fcode,
+          e_fcode,
 
       _refresh,
 
@@ -303,7 +304,7 @@ CLASS conway_view IMPLEMENTATION.
         ASSERT sy-subrc = 0.
 
         <value> = COND #( WHEN board->get_cell( i_col = col
-                                                  i_row = row ) = abap_true
+                                                i_row = row ) = abap_true
                           THEN icon_modify ).
 
       ENDDO.
@@ -401,7 +402,12 @@ CLASS conway_view IMPLEMENTATION.
       docking_container = NEW cl_gui_docking_container( side      = cl_gui_docking_container=>dock_at_top
                                                         extension = 30 ).
 
-      html_container = NEW cl_gui_html_viewer( parent = docking_container ).
+      splitter_container = NEW cl_gui_splitter_container(
+          parent  = docking_container
+          rows    = 1
+          columns = 2 ).
+
+      html_container = NEW cl_gui_html_viewer( parent = splitter_container->get_container( row = 1 column = 1 ) ).
 
     ENDIF.
 
@@ -409,7 +415,7 @@ CLASS conway_view IMPLEMENTATION.
 
     html_container->load_data(
       IMPORTING
-        assigned_url = assigned_url    " URL
+        assigned_url = assigned_url
       CHANGING
         data_table   = html_table
       EXCEPTIONS
@@ -458,12 +464,12 @@ CLASS conway_view IMPLEMENTATION.
 
   METHOD _dummy_html_control.
 
-    DATA: lt_events TYPE cntl_simple_events.
+    DATA: events TYPE cntl_simple_events.
 
     " Here the dummy html container for timer wakeup via AMC and WebSockets is created
     CHECK dummy_html_control IS NOT BOUND.
 
-    dummy_html_control = NEW cl_gui_html_viewer( parent = cl_gui_container=>screen9 ).
+    dummy_html_control = NEW cl_gui_html_viewer( parent = splitter_container->get_container( row = 1 column = 2 ) ).
 
     dummy_html_control->enable_sapsso(
       EXPORTING
@@ -476,14 +482,14 @@ CLASS conway_view IMPLEMENTATION.
       lcx_error=>raise_syst( ).
     ENDIF.
 
-    lt_events = VALUE #( ( eventid    = 1
-                           appl_event = abap_true ) ).
+    events = VALUE #( ( eventid    = 1
+                        appl_event = abap_true ) ).
 
     dummy_html_control->set_registered_events(
       EXPORTING
-        events                    = lt_events
+        events = events
       EXCEPTIONS
-        OTHERS                    = 4 ).
+        OTHERS = 4 ).
 
     IF sy-subrc <> 0.
       lcx_error=>raise_syst( ).
@@ -495,7 +501,7 @@ CLASS conway_view IMPLEMENTATION.
       EXPORTING
         in_protocol    = 'https'
         in_application = 'Z_AMC_WAKEUP_WS'
-        in_page 			 = 'start.htm'
+        in_page        = 'start.htm'
       IMPORTING
         out_abs_url 	 = DATA(url) ).
 
@@ -508,7 +514,6 @@ CLASS conway_view IMPLEMENTATION.
         cnht_error_parameter   = 3
         dp_error_general       = 4
         OTHERS                 = 5 ).
-
     IF sy-subrc <> 0.
       lcx_error=>raise_syst( ).
     ENDIF.
@@ -631,7 +636,10 @@ CLASS controller IMPLEMENTATION.
 
     m_timer_current = m_timer_max.
 
-    m_timer->cancel(  ).
+    m_timer->cancel(
+      EXCEPTIONS
+        error  = 1
+        OTHERS = 2 ).
 
     IF sy-subrc <> 0.
       lcx_error=>raise_syst( ).
