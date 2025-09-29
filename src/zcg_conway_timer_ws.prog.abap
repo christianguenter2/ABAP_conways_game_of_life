@@ -5,82 +5,26 @@
 *&---------------------------------------------------------------------*
 REPORT zcg_conway_timer_ws.
 
-PARAMETERS: mil_sec TYPE i DEFAULT 1000 OBLIGATORY,
+PARAMETERS: seconds TYPE i DEFAULT 1 OBLIGATORY,
             times   TYPE i DEFAULT 10 OBLIGATORY.
 
-CLASS send_amc DEFINITION CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    METHODS:
-      constructor
-        RAISING
-          cx_amc_error,
-
-      start
-        RAISING
-          cx_amc_error.
-
-  PRIVATE SECTION.
-    DATA:
-      _producer TYPE REF TO if_amc_message_producer_text.
-
-    METHODS:
-      _wait_n_milliseconds
-        IMPORTING
-          i_milliseconds TYPE i.
-
-ENDCLASS.
-
-CLASS send_amc IMPLEMENTATION.
-
-  METHOD constructor.
-
-    _producer ?= cl_amc_channel_manager=>create_message_producer( i_application_id = zcl_apc_wsp_ext_zapc_wakeup=>c_amc_application_id
-                                                                  i_channel_id     = zcl_apc_wsp_ext_zapc_wakeup=>c_channel_id ).
-
-  ENDMETHOD.
-
-  METHOD start.
-
-    DO times TIMES.
-
-      _wait_n_milliseconds( mil_sec ).
-
-      _producer->send( || ).
-
-    ENDDO.
-
-  ENDMETHOD.
-
-
-  METHOD _wait_n_milliseconds.
-
-    DATA: ts1 TYPE timestampl,
-          ts2 TYPE timestampl,
-          ts3 TYPE timestampl.
-
-    DATA(seconds) = i_milliseconds / 1000.
-
-    GET TIME STAMP FIELD ts1.
-
-    DO.
-
-      GET TIME STAMP FIELD ts2.
-      ts3 = ts2 - ts1.
-      IF ts3 > seconds.
-        EXIT.
-      ENDIF.
-
-    ENDDO.
-
-  ENDMETHOD.
-
-ENDCLASS.
-
 START-OF-SELECTION.
-  TRY.
-      NEW send_amc( )->start( ).
+  CALL FUNCTION 'ZCG_CONWAY_TIMER_WS'
+    IN BACKGROUND TASK
+    DESTINATION 'NONE'
+    EXPORTING
+      i_wait_in_seconds = seconds
+      i_times           = times
+    EXCEPTIONS
+      error             = 1
+      OTHERS            = 2.
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE 'S' NUMBER sy-msgno
+      DISPLAY LIKE sy-msgty
+      WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    RETURN.
+  ENDIF.
 
-    CATCH cx_amc_error INTO DATA(error).
-      MESSAGE error TYPE 'S' DISPLAY LIKE 'E'.
-  ENDTRY.
+  COMMIT WORK.
+
+  MESSAGE 'Timer started in background' TYPE 'S'.

@@ -30,7 +30,7 @@ CLASS zcl_apc_wsp_ext_zapc_wakeup IMPLEMENTATION.
 
         i_context->get_binding_manager(
                 )->bind_amc_message_consumer( i_application_id = c_amc_application_id
-                                              i_channel_id		  = c_channel_id ).
+                                              i_channel_id     = c_channel_id ).
 
       CATCH cx_apc_error INTO DATA(apc_error).
 

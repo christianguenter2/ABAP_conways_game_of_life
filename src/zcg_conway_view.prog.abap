@@ -12,14 +12,12 @@ SELECTION-SCREEN BEGIN OF SCREEN 2000.
 SELECTION-SCREEN END OF SCREEN 2000.
 
 SELECTION-SCREEN BEGIN OF SCREEN 2500.
-  PARAMETERS: gui RADIOBUTTON GROUP r1 DEFAULT 'X',
-              ws  RADIOBUTTON GROUP r1.
-SELECTION-SCREEN END OF SCREEN 2500.
-
-SELECTION-SCREEN BEGIN OF SCREEN 3000.
+  PARAMETERS: ws  RADIOBUTTON GROUP r1 DEFAULT 'X',
+              gui RADIOBUTTON GROUP r1.
+  SELECTION-SCREEN SKIP.
   SELECTION-SCREEN INCLUDE PARAMETERS count.
-  PARAMETERS: interval TYPE p LENGTH 2 DECIMALS 2 DEFAULT 1 OBLIGATORY.
-SELECTION-SCREEN END OF SCREEN 3000.
+  PARAMETERS: interval TYPE p LENGTH 2 DECIMALS 0 DEFAULT 1 OBLIGATORY.
+SELECTION-SCREEN END OF SCREEN 2500.
 
 CLASS lcx_error DEFINITION
                 INHERITING FROM cx_static_check.
@@ -79,9 +77,9 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
 
       pbo_0100,
 
-      prepare_websocket_channel
-        RAISING
-          lcx_error.
+      register_ws_handler,
+
+      deregister_ws_handler.
 
     EVENTS:
       function_code_pressed
@@ -138,9 +136,13 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
         IMPORTING
           action frame getdata postdata query_table,
 
-      create_struct_descr
+      _create_struct_descr
         RETURNING
-          VALUE(result) TYPE REF TO cl_abap_structdescr.
+          VALUE(result) TYPE REF TO cl_abap_structdescr,
+
+      _prepare_websocket_receiver
+        RAISING
+          lcx_error.
 
 ENDCLASS.
 
@@ -161,20 +163,17 @@ CLASS controller DEFINITION CREATE PUBLIC.
         RETURNING
           VALUE(r_instance) TYPE REF TO controller,
 
-      clean_up,
-
-      is_timer_active
+      is_simulation_active
         RETURNING
-          VALUE(r_is_timer_active) TYPE abap_bool.
+          VALUE(result) TYPE abap_bool.
 
   PRIVATE SECTION.
     CLASS-DATA: _instance TYPE REF TO controller.
 
-    DATA: m_board             TYPE REF TO zcl_cg_conways_game_of_life,
-          m_timer             TYPE REF TO cl_gui_timer,
-          m_timer_current     TYPE i,
-          m_timer_max         TYPE i,
-          m_is_amc_registered TYPE abap_bool.
+    DATA: m_board         TYPE REF TO zcl_cg_conways_game_of_life,
+          m_timer         TYPE REF TO cl_gui_timer,
+          m_timer_current TYPE i,
+          m_timer_max     TYPE i.
 
     METHODS:
       _dispatch_fcode FOR EVENT function_code_pressed OF conway_view
@@ -266,7 +265,7 @@ CLASS conway_view IMPLEMENTATION.
 
     board = i_board.
 
-    struct_descr = create_struct_descr( ).
+    struct_descr = _create_struct_descr( ).
 
     DATA(table_descr) = cl_abap_tabledescr=>create( struct_descr ).
 
@@ -399,6 +398,7 @@ CLASS conway_view IMPLEMENTATION.
     TRY.
         _fill_board(  CHANGING ct_table = <table> ).
         _display_docking_top( ).
+        _prepare_websocket_receiver( ).
         _display_alv( CHANGING ct_table = <table> ).
 
       CATCH lcx_error INTO DATA(error).
@@ -478,10 +478,12 @@ CLASS conway_view IMPLEMENTATION.
   METHOD _set_status.
 
     DATA: excluding_function_codes TYPE STANDARD TABLE OF char20
-                                   WITH NON-UNIQUE DEFAULT KEY.
+                                        WITH NON-UNIQUE DEFAULT KEY.
 
-    IF NOT controller=>get_instance( )->is_timer_active( ).
+    IF NOT controller=>get_instance( )->is_simulation_active( ).
       INSERT CONV #( 'STOP' ) INTO TABLE excluding_function_codes.
+    ELSE.
+      INSERT CONV #( 'SIM' ) INTO TABLE excluding_function_codes.
     ENDIF.
 
     SET PF-STATUS 'STATUS_0100' EXCLUDING excluding_function_codes.
@@ -489,8 +491,6 @@ CLASS conway_view IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD _dummy_html_control.
-
-    DATA: events TYPE cntl_simple_events.
 
     " Here the dummy html container for timer wakeup via AMC and WebSockets is created
     CHECK dummy_html_control IS NOT BOUND.
@@ -503,19 +503,6 @@ CLASS conway_view IMPLEMENTATION.
       EXCEPTIONS
         cntl_error  = 1
         OTHERS      = 2 ).
-
-    IF sy-subrc <> 0.
-      lcx_error=>raise_syst( ).
-    ENDIF.
-
-    events = VALUE #( ( eventid    = 1
-                        appl_event = abap_true ) ).
-
-    dummy_html_control->set_registered_events(
-      EXPORTING
-        events = events
-      EXCEPTIONS
-        OTHERS = 4 ).
 
     IF sy-subrc <> 0.
       lcx_error=>raise_syst( ).
@@ -549,21 +536,25 @@ CLASS conway_view IMPLEMENTATION.
 
   METHOD _on_sapevent.
 
-    RAISE EVENT function_code_pressed
-      EXPORTING
-        e_fcode = 'NEXT'.
+    IF controller=>get_instance( )->is_simulation_active( ).
+      RAISE EVENT function_code_pressed
+        EXPORTING
+          e_fcode = 'NEXT_SIM'.
+    ELSE.
+      deregister_ws_handler( ).
+    ENDIF.
 
   ENDMETHOD.
 
 
-  METHOD prepare_websocket_channel.
+  METHOD _prepare_websocket_receiver.
 
     _dummy_html_control( ).
 
   ENDMETHOD.
 
 
-  METHOD create_struct_descr.
+  METHOD _create_struct_descr.
 
     result = cl_abap_structdescr=>create(
                VALUE #(
@@ -574,6 +565,35 @@ CLASS conway_view IMPLEMENTATION.
                  FOR x = 1 WHILE x <= board->m_size
                  ( name = |COL_{ x }|
                    type = icon_type ) ) ).
+
+  ENDMETHOD.
+
+
+  METHOD register_ws_handler.
+
+    DATA: events TYPE cntl_simple_events.
+
+    events = VALUE #( ( eventid    = 1
+                        appl_event = abap_true ) ).
+
+    dummy_html_control->set_registered_events(
+      EXPORTING
+        events = events
+      EXCEPTIONS
+        OTHERS = 4 ).
+    ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+
+
+  METHOD deregister_ws_handler.
+
+    dummy_html_control->set_registered_events(
+      EXPORTING
+        events = VALUE #( )
+      EXCEPTIONS
+        OTHERS = 4 ).
+    ASSERT sy-subrc = 0.
 
   ENDMETHOD.
 
@@ -627,47 +647,41 @@ CLASS controller IMPLEMENTATION.
 
   METHOD _start_simulation.
 
-    IF m_timer IS NOT BOUND.
-
-      m_timer = NEW cl_gui_timer( ).
-
-      SET HANDLER _handler_timer_finished FOR m_timer.
-
-    ENDIF.
-
     CALL SELECTION-SCREEN 2500 STARTING AT 5 5.
     CHECK sy-subrc = 0.
+
+    m_timer_current = 0.
+    m_timer_max     = count.
 
     CASE abap_true .
       WHEN gui.
 
-        CALL SELECTION-SCREEN 3000 STARTING AT 5 5.
-        CHECK sy-subrc = 0.
-
-        m_timer_current = 0.
-        m_timer_max     = count.
+        IF m_timer IS NOT BOUND.
+          m_timer = NEW cl_gui_timer( ).
+          SET HANDLER _handler_timer_finished FOR m_timer.
+        ENDIF.
 
         m_timer->interval = interval.
         m_timer->run( ).
 
       WHEN ws.
 
-        m_view->prepare_websocket_channel( ).
+        m_view->register_ws_handler( ).
 
-        CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-          STARTING NEW TASK 'CONWAY'
+        " start websocket timer in background task (trfc)
+        CALL FUNCTION 'ZCG_CONWAY_TIMER_WS'
+          IN BACKGROUND TASK
+          DESTINATION 'NONE'
           EXPORTING
-            tcode                   = 'Z_CONWAY_TIMER_WS'
+            i_wait_in_seconds = interval
+            i_times           = count
           EXCEPTIONS
-            call_transaction_denied = 1
-            tcode_invalid           = 2
-            OTHERS                  = 3.
-
+            OTHERS            = 1.
         IF sy-subrc <> 0.
           lcx_error=>raise_syst( ).
         ENDIF.
 
-        m_is_amc_registered = abap_true.
+        COMMIT WORK.
 
     ENDCASE.
 
@@ -677,14 +691,23 @@ CLASS controller IMPLEMENTATION.
 
     m_timer_current = m_timer_max.
 
-    m_timer->cancel(
-      EXCEPTIONS
-        error  = 1
-        OTHERS = 2 ).
+    CASE abap_true.
+      WHEN gui.
 
-    IF sy-subrc <> 0.
-      lcx_error=>raise_syst( ).
-    ENDIF.
+        m_timer->cancel(
+          EXCEPTIONS
+            error  = 1
+            OTHERS = 2 ).
+        IF sy-subrc <> 0.
+          lcx_error=>raise_syst( ).
+        ENDIF.
+
+      WHEN ws.
+
+        m_view->deregister_ws_handler( ).
+
+    ENDCASE.
+
 
   ENDMETHOD.
 
@@ -703,9 +726,9 @@ CLASS controller IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD is_timer_active.
+  METHOD is_simulation_active.
 
-    r_is_timer_active = boolc( m_timer_current < m_timer_max ).
+    result = boolc( m_timer_current < m_timer_max ).
 
   ENDMETHOD.
 
@@ -720,6 +743,12 @@ CLASS controller IMPLEMENTATION.
 
       WHEN 'NEXT'.
 
+        m_board->turn( ).
+        _refresh( ).
+
+      WHEN 'NEXT_SIM'.
+
+        m_timer_current = m_timer_current + 1.
         m_board->turn( ).
         _refresh( ).
 
@@ -749,29 +778,10 @@ CLASS controller IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD clean_up.
-
-    CHECK m_is_amc_registered = abap_true.
-
-    DATA: _producer TYPE REF TO if_amc_message_producer_text.
-
-    TRY.
-        _producer ?= cl_amc_channel_manager=>create_message_producer( i_application_id = 'ZAMC_WAKEUP'
-                                                                      i_channel_id     = '/channel' ).
-
-        _producer->send( |__CLOSE__| ).
-
-      CATCH cx_amc_error INTO DATA(error).
-        MESSAGE error TYPE 'S' DISPLAY LIKE 'E'.
-    ENDTRY.
-
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 START-OF-SELECTION.
-  controller=>get_instance( )->start( size )->clean_up( ).
+  controller=>get_instance( )->start( size ).
 
 MODULE pbo_0100 OUTPUT.
   controller=>get_instance( )->m_view->pbo_0100( ).
