@@ -5,6 +5,9 @@ CLASS zcl_cg_conways_game_of_life DEFINITION
 
   PUBLIC SECTION.
 
+    INTERFACES:
+      if_serializable_object.
+
     TYPES:
       BEGIN OF ty_coordinate,
         col TYPE i,
