@@ -61,7 +61,6 @@ CLASS zcl_cg_conways_game_of_life DEFINITION
         RETURNING
           VALUE(r_cells_alive) TYPE i .
 
-protected section.
   PRIVATE SECTION.
 
     TYPES: BEGIN OF ty_neighbour.
