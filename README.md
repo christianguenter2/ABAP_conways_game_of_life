@@ -13,6 +13,8 @@ In simulation mode you can either use a SAPGUI timer (option GUI) or the modern 
 
 ![Init](/mimes/gol_with_websocket_timer.jpg?raw=true "Init")
 
+![alt text](image.png)
+
 ![After 10 turns](/mimes/gol_after_10_turns.jpg?raw=true "After 10 turns")
 
 ![After 110 turns](/mimes/gol_after_110_turns.jpg?raw=true "After 110 turns")
