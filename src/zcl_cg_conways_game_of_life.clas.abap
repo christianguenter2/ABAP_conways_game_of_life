@@ -106,7 +106,7 @@ ENDCLASS.
 
 
 
-CLASS ZCL_CG_CONWAYS_GAME_OF_LIFE IMPLEMENTATION.
+CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
 
   METHOD activate_cell.

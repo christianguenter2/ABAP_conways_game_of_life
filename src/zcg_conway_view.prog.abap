@@ -136,7 +136,11 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
 
       _on_sapevent FOR EVENT sapevent OF cl_gui_html_viewer
         IMPORTING
-          action frame getdata postdata query_table.
+          action frame getdata postdata query_table,
+
+      create_struct_descr
+        RETURNING
+          VALUE(result) TYPE REF TO cl_abap_structdescr.
 
 ENDCLASS.
 
@@ -262,20 +266,11 @@ CLASS conway_view IMPLEMENTATION.
 
     board = i_board.
 
-    struct_descr = cl_abap_structdescr=>create(
-                        VALUE #(
-                          LET icon_type = CAST cl_abap_datadescr( cl_abap_typedescr=>describe_by_name( |ICON_D| ) )
-                          IN
-                          BASE VALUE #( ( name = |{ c_color_column }|
-                                          type = CAST cl_abap_datadescr( cl_abap_typedescr=>describe_by_name( |LVC_T_SCOL| ) ) ) )
-                          FOR x = 1 WHILE x <= board->m_size
-                          ( name = |COL_{ x }|
-                            type = icon_type ) ) ).
+    struct_descr = create_struct_descr( ).
 
     DATA(table_descr) = cl_abap_tabledescr=>create( struct_descr ).
 
     CREATE DATA table_reference TYPE HANDLE table_descr.
-    ASSERT table_reference IS BOUND.
 
   ENDMETHOD.
 
@@ -356,7 +351,9 @@ CLASS conway_view IMPLEMENTATION.
               t_table        = ct_table ).
 
           _resize_columns( ).
+
           alv->get_columns( )->set_color_column( |{ c_color_column }| ).
+          alv->get_functions( )->set_all( abap_false ).
 
           alv->display( ).
 
@@ -429,7 +426,7 @@ CLASS conway_view IMPLEMENTATION.
     IF docking_container IS NOT BOUND.
 
       docking_container = NEW cl_gui_docking_container( side      = cl_gui_docking_container=>dock_at_top
-                                                        extension = 35 ).
+                                                        extension = 45 ).
 
       splitter_container = NEW cl_gui_splitter_container(
           parent  = docking_container
@@ -562,6 +559,21 @@ CLASS conway_view IMPLEMENTATION.
   METHOD prepare_websocket_channel.
 
     _dummy_html_control( ).
+
+  ENDMETHOD.
+
+
+  METHOD create_struct_descr.
+
+    result = cl_abap_structdescr=>create(
+               VALUE #(
+                 LET icon_type = CAST cl_abap_datadescr( cl_abap_typedescr=>describe_by_name( |ICON_D| ) )
+                 IN
+                 BASE VALUE #( ( name = |{ c_color_column }|
+                                 type = CAST cl_abap_datadescr( cl_abap_typedescr=>describe_by_name( |LVC_T_SCOL| ) ) ) )
+                 FOR x = 1 WHILE x <= board->m_size
+                 ( name = |COL_{ x }|
+                   type = icon_type ) ) ).
 
   ENDMETHOD.
 
