@@ -23,18 +23,18 @@ CLASS test_conway DEFINITION FINAL FOR TESTING
           given_rows TYPE i.
 
     METHODS:
-      init_board								 FOR TESTING RAISING cx_static_check,
-      fill_randomly 						 FOR TESTING RAISING cx_static_check,
-      less_than_two_neighbours	 FOR TESTING RAISING cx_static_check,
-      two_or_three_neighbours 	 FOR TESTING RAISING cx_static_check,
-      two_neighbours						 FOR TESTING RAISING cx_static_check,
+      init_board                 FOR TESTING RAISING cx_static_check,
+      fill_randomly              FOR TESTING RAISING cx_static_check,
+      less_than_two_neighbours   FOR TESTING RAISING cx_static_check,
+      two_or_three_neighbours    FOR TESTING RAISING cx_static_check,
+      two_neighbours             FOR TESTING RAISING cx_static_check,
       more_than_three_neighbours FOR TESTING RAISING cx_static_check,
-      exactly_three_neighbours	 FOR TESTING RAISING cx_static_check,
+      exactly_three_neighbours   FOR TESTING RAISING cx_static_check,
       turn_with_two_active_cells FOR TESTING RAISING cx_static_check,
-      two_consecutive_turns 		 FOR TESTING RAISING cx_static_check,
-      turn_count								 FOR TESTING RAISING cx_static_check,
-      cells_alive 							 FOR TESTING RAISING cx_static_check,
-      large_board 							 FOR TESTING RAISING cx_static_check,
+      two_consecutive_turns      FOR TESTING RAISING cx_static_check,
+      turn_count                 FOR TESTING RAISING cx_static_check,
+      cells_alive                FOR TESTING RAISING cx_static_check,
+      large_board                FOR TESTING RAISING cx_static_check,
 
       _given_board_is
         IMPORTING
@@ -148,8 +148,8 @@ CLASS test_conway IMPLEMENTATION.
                       `| | | |` ).
 
     _then_board_should_be(: `| | | |` ),
-													  `| | | |` ),
-													  `| | | |` ).
+                            `| | | |` ),
+                            `| | | |` ).
 
   ENDMETHOD.
 
@@ -162,8 +162,8 @@ CLASS test_conway IMPLEMENTATION.
     board->fill_randomly( i_seed = co_random_seed-_1_ ).
 
     _then_board_should_be(: `| |X|X|` ),
-													  `| | |X|` ),
-													  `|X|X|X|` ).
+                            `| | |X|` ),
+                            `|X|X|X|` ).
 
   ENDMETHOD.
 
@@ -176,8 +176,8 @@ CLASS test_conway IMPLEMENTATION.
     _when_turn_is_executed( ).
 
     _then_board_should_be(: `| | | |` ),
-													  `| | | |` ),
-													  `| | | |` ).
+                            `| | | |` ),
+                            `| | | |` ).
 
   ENDMETHOD.
 
@@ -191,8 +191,8 @@ CLASS test_conway IMPLEMENTATION.
 
 
     _then_board_should_be(: `| | | |` ),
-													  `|X|X|X|` ),
-													  `|X|X|X|` ).
+                            `|X|X|X|` ),
+                            `|X|X|X|` ).
 
   ENDMETHOD.
 
@@ -205,8 +205,8 @@ CLASS test_conway IMPLEMENTATION.
     _when_turn_is_executed( ).
 
     _then_board_should_be(: `| | | |` ),
-													  `| |X| |` ),
-													  `| |X| |` ).
+                            `| |X| |` ),
+                            `| |X| |` ).
 
   ENDMETHOD.
 
@@ -219,8 +219,8 @@ CLASS test_conway IMPLEMENTATION.
     _when_turn_is_executed( ).
 
     _then_board_should_be(: `| |X| |` ),
-													  `|X| | |` ),
-													  `|X|X|X|` ).
+                            `|X| | |` ),
+                            `|X|X|X|` ).
 
   ENDMETHOD.
 
@@ -233,8 +233,8 @@ CLASS test_conway IMPLEMENTATION.
     _when_turn_is_executed( ).
 
     _then_board_should_be(: `| | | |` ),
-													  `| |X|X|` ),
-													  `| |X|X|` ).
+                            `| |X|X|` ),
+                            `| |X|X|` ).
 
   ENDMETHOD.
 
@@ -261,8 +261,8 @@ CLASS test_conway IMPLEMENTATION.
     _when_mult_turns_are_executed( turns_to_execute = 2 ).
 
     _then_board_should_be(: `| | | |` ),
-													  `| | | |` ),
-													  `| | | |` ).
+                            `| | | |` ),
+                            `| | | |` ).
 
   ENDMETHOD.
 
@@ -307,18 +307,18 @@ CLASS test_conway IMPLEMENTATION.
     board->fill_randomly( i_seed = co_random_seed-_2_ ).
 
     _then_board_should_be(: `| | |X|X| |` ),
-													  `| |X| | | |` ),
-													  `| |X| | |X|` ),
-													  `| |X|X|X|X|` ),
-													  `|X|X| | |X|` ).
+                            `| |X| | | |` ),
+                            `| |X| | |X|` ),
+                            `| |X|X|X|X|` ),
+                            `|X|X| | |X|` ).
 
     _when_turn_is_executed( ).
 
     _then_board_should_be(: `| | |X| | |` ),
-													  `| |X| |X| |` ),
-													  `|X|X| | |X|` ),
-													  `| | | | |X|` ),
-													  `|X|X| | |X|` ).
+                            `| |X| |X| |` ),
+                            `|X|X| | |X|` ),
+                            `| | | | |X|` ),
+                            `|X|X| | |X|` ).
 
   ENDMETHOD.
 
