@@ -15,7 +15,7 @@ CLASS zcl_cg_conways_game_of_life DEFINITION
       BEGIN OF ty_cell.
         INCLUDE TYPE ty_coordinate.
     TYPES: alive TYPE abap_bool,
-           END OF ty_cell.
+      END OF ty_cell.
 
     TYPES:
       tty_coordinates TYPE HASHED TABLE OF ty_coordinate
@@ -61,11 +61,12 @@ CLASS zcl_cg_conways_game_of_life DEFINITION
         RETURNING
           VALUE(r_cells_alive) TYPE i .
 
+protected section.
   PRIVATE SECTION.
 
     TYPES: BEGIN OF ty_neighbour.
-        INCLUDE TYPE ty_coordinate.
-    TYPES: neighbours_coordinates TYPE tty_coordinates,
+             INCLUDE TYPE ty_coordinate.
+    TYPES:   neighbours_coordinates TYPE tty_coordinates,
            END OF ty_neighbour,
            tty_neighbour TYPE HASHED TABLE OF ty_neighbour
                               WITH UNIQUE KEY col row.
@@ -106,7 +107,7 @@ ENDCLASS.
 
 
 
-CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
+CLASS ZCL_CG_CONWAYS_GAME_OF_LIFE IMPLEMENTATION.
 
 
   METHOD activate_cell.
@@ -197,8 +198,8 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
                                     OR ( row = i_row - 1 AND col = i_col + 1 ) )
                                (  col = cell-col row = cell-row  ) ).
 
-      INSERT VALUE #( col 									 = i_col
-                      row 									 = i_row
+      INSERT VALUE #( col                    = i_col
+                      row                    = i_row
                       neighbours_coordinates = neighbours_coordinates )
              INTO TABLE neighbours_buffer.
 
@@ -248,7 +249,7 @@ CLASS zcl_cg_conways_game_of_life IMPLEMENTATION.
 
   METHOD _execute_rule.
 
-    r_cell_alive =  COND #( WHEN i_alive_neighbours = 3 														 THEN abap_true
+    r_cell_alive =  COND #( WHEN i_alive_neighbours = 3                              THEN abap_true
                             WHEN i_alive_neighbours = 2 AND i_cell_alive = abap_true THEN abap_true ).
 
   ENDMETHOD.

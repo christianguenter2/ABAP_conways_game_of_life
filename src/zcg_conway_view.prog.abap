@@ -480,14 +480,14 @@ CLASS conway_view IMPLEMENTATION.
 
   METHOD _set_status.
 
-    DATA: lt_excluding TYPE STANDARD TABLE OF char20
-                            WITH NON-UNIQUE DEFAULT KEY.
+    DATA: excluding_function_codes TYPE STANDARD TABLE OF char20
+                                   WITH NON-UNIQUE DEFAULT KEY.
 
     IF NOT controller=>get_instance( )->is_timer_active( ).
-      INSERT CONV #( 'STOP' ) INTO TABLE lt_excluding.
+      INSERT CONV #( 'STOP' ) INTO TABLE excluding_function_codes.
     ENDIF.
 
-    SET PF-STATUS 'STATUS_0100' EXCLUDING lt_excluding.
+    SET PF-STATUS 'STATUS_0100' EXCLUDING excluding_function_codes.
 
   ENDMETHOD.
 

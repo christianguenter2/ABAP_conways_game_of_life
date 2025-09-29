@@ -35,8 +35,8 @@ CLASS send_amc IMPLEMENTATION.
 
   METHOD constructor.
 
-    _producer ?= cl_amc_channel_manager=>create_message_producer( i_application_id = 'ZAMC_WAKEUP'
-                                                                  i_channel_id     = '/channel' ).
+    _producer ?= cl_amc_channel_manager=>create_message_producer( i_application_id = zcl_apc_wsp_ext_zapc_wakeup=>c_amc_application_id
+                                                                  i_channel_id     = zcl_apc_wsp_ext_zapc_wakeup=>c_channel_id ).
 
   ENDMETHOD.
 
