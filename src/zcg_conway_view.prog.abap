@@ -89,6 +89,7 @@ CLASS conway_view DEFINITION CREATE PUBLIC.
           VALUE(e_fcode) TYPE sy-ucomm.
 
   PRIVATE SECTION.
+    CONSTANTS c_color_column TYPE string VALUE `COLOR` ##NO_TEXT.
 
     TYPES:
       tty_html TYPE STANDARD TABLE OF char255
@@ -262,11 +263,14 @@ CLASS conway_view IMPLEMENTATION.
     board = i_board.
 
     struct_descr = cl_abap_structdescr=>create(
-                        VALUE #( LET type = CAST cl_abap_datadescr( cl_abap_typedescr=>describe_by_name( |ICON_D| ) )
-                                 IN
-                                 FOR x = 1 WHILE x <= board->m_size
-                                 ( name = |COL_{ x }|
-                                   type = type ) ) ).
+                        VALUE #(
+                          LET icon_type = CAST cl_abap_datadescr( cl_abap_typedescr=>describe_by_name( |ICON_D| ) )
+                          IN
+                          BASE VALUE #( ( name = |{ c_color_column }|
+                                          type = CAST cl_abap_datadescr( cl_abap_typedescr=>describe_by_name( |LVC_T_SCOL| ) ) ) )
+                          FOR x = 1 WHILE x <= board->m_size
+                          ( name = |COL_{ x }|
+                            type = icon_type ) ) ).
 
     DATA(table_descr) = cl_abap_tabledescr=>create( struct_descr ).
 
@@ -283,29 +287,51 @@ CLASS conway_view IMPLEMENTATION.
 
   METHOD _fill_board.
 
+    CONSTANTS:
+      BEGIN OF c_green,
+        col TYPE lvc_col VALUE col_positive,
+        int TYPE lvc_int VALUE 0,
+        inv TYPE lvc_inv VALUE 0,
+      END OF c_green.
+
     DATA: lr_line TYPE REF TO data.
 
     CLEAR ct_table.
 
     DO board->m_size TIMES.
 
+      DATA(row) = sy-index.
+
       CREATE DATA lr_line TYPE HANDLE struct_descr.
       ASSIGN lr_line->* TO FIELD-SYMBOL(<line>).
 
-      DATA(row) = sy-index.
+      ASSIGN COMPONENT |{ c_color_column }|
+             OF STRUCTURE <line>
+             TO FIELD-SYMBOL(<color_column>).
+      ASSERT sy-subrc = 0.
 
       DO board->m_size TIMES.
 
         DATA(col) = sy-index.
+        DATA(column_name) = |COL_{ col }|.
 
-        ASSIGN COMPONENT |COL_{ col }|
+        ASSIGN COMPONENT column_name
                OF STRUCTURE <line>
                TO FIELD-SYMBOL(<value>).
         ASSERT sy-subrc = 0.
 
-        <value> = COND #( WHEN board->get_cell( i_col = col
-                                                i_row = row ) = abap_true
-                          THEN icon_modify ).
+        DATA(cell_state) = board->get_cell( i_col = col
+                                            i_row = row ).
+
+        IF cell_state = abap_true.
+          <value> = icon_modify.
+
+          INSERT
+            VALUE lvc_s_scol(
+              fname = column_name
+              color = c_green )
+            INTO TABLE <color_column>.
+        ENDIF.
 
       ENDDO.
 
@@ -330,6 +356,7 @@ CLASS conway_view IMPLEMENTATION.
               t_table        = ct_table ).
 
           _resize_columns( ).
+          alv->get_columns( )->set_color_column( |{ c_color_column }| ).
 
           alv->display( ).
 
@@ -355,7 +382,9 @@ CLASS conway_view IMPLEMENTATION.
 
     DO board->m_size TIMES.
 
-      alv->get_columns( )->get_column( |COL_{ sy-index }| )->set_output_length( 2 ).
+      DATA(column) = alv->get_columns( )->get_column( |COL_{ sy-index }| ).
+      column->set_output_length( 2 ).
+      column->set_alignment( if_salv_c_alignment=>centered ).
 
     ENDDO.
 
