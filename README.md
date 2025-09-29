@@ -1,10 +1,10 @@
-﻿# ABAP_conways_game_of_life
+# ABAP_conways_game_of_life
 
 Implementation of [Conways Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) in ABAP. 
 
 NW ABAP 7.50 required.
 
-![demo](/assets/gol.mp4 "demo")
+![demo](/assets/gol.gif?raw=true "demo")
 
 To start execute report ZCG_CONWAY_VIEW
 
