@@ -400,7 +400,7 @@ CLASS conway_view IMPLEMENTATION.
     IF docking_container IS NOT BOUND.
 
       docking_container = NEW cl_gui_docking_container( side      = cl_gui_docking_container=>dock_at_top
-                                                        extension = 30 ).
+                                                        extension = 35 ).
 
       splitter_container = NEW cl_gui_splitter_container(
           parent  = docking_container
