@@ -2,7 +2,7 @@ FUNCTION zcg_conway_timer_ws.
 *"----------------------------------------------------------------------
 *"*"Local Interface:
 *"  IMPORTING
-*"     VALUE(I_WAIT_IN_SECONDS) TYPE  I DEFAULT 1000
+*"     VALUE(I_WAIT_IN_SECONDS) TYPE  I DEFAULT 1
 *"     VALUE(I_TIMES) TYPE  I DEFAULT 10
 *"  EXCEPTIONS
 *"      ERROR

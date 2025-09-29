@@ -17,7 +17,7 @@
      <IMPORT>
       <RSIMP>
        <PARAMETER>I_WAIT_IN_SECONDS</PARAMETER>
-       <DEFAULT>1000</DEFAULT>
+       <DEFAULT>1</DEFAULT>
        <OPTIONAL>X</OPTIONAL>
        <TYP>I</TYP>
       </RSIMP>
