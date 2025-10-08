@@ -145,27 +145,29 @@ CLASS zcl_cg_conway_abap2ui5 IMPLEMENTATION.
 
     ENDIF.
 
-    view->_generic( name = `script`
-                    ns   = `html`
-       )->_cc_plain_xml(
-          `(()=>{ ` &&
-          `  var ws_url = window.location.origin + '/sap/bc/apc/sap/zapc_wakeup';` &&
-          `  var ws_url = ws_url.replace('http','ws');` &&
-          `  try { ` &&
-          `    ws = new WebSocket(ws_url);` &&
-          `  } catch (err) {` &&
-          `    alert(err);` &&
-          `  }` &&
-          `  ws.onopen = ()=>{};` &&
-          `  ws.onmessage = (msg)=>{` &&
-          `    if (msg.data == '__CLOSE__') {` &&
-          `      ws.close();` &&
-          `      return;` &&
-          `    }` &&
-          `    z2ui5.oController.eB(['NEXT']);` &&
-          `  };` &&
-          `  ws.onclose = (msg)=>{};` &&
-          `})()` ).
+    IF z2ui5_if_app~check_initialized = abap_false.
+      view->_generic( name = `script`
+                      ns   = `html`
+         )->_cc_plain_xml(
+            `(()=>{ ` &&
+            `  var ws_url = window.location.origin + '/sap/bc/apc/sap/zapc_wakeup';` &&
+            `  var ws_url = ws_url.replace('http','ws');` &&
+            `  try { ` &&
+            `    ws = new WebSocket(ws_url);` &&
+            `  } catch (err) {` &&
+            `    alert(err);` &&
+            `  }` &&
+            `  ws.onopen = ()=>{};` &&
+            `  ws.onmessage = (msg)=>{` &&
+            `    if (msg.data == '__CLOSE__') {` &&
+            `      ws.close();` &&
+            `      return;` &&
+            `    }` &&
+            `    z2ui5.oController.eB(['NEXT']);` &&
+            `  };` &&
+            `  ws.onclose = (msg)=>{};` &&
+            `})()` ).
+    ENDIF.
 
     result = view->stringify( ).
 
